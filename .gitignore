@@ -1,0 +1,31 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/appsettings.Development.json
+backend/**/appsettings.Local.json
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Environment & secrets
+.env
+*.env
+**/secrets.json
+**/appsettings.*.local.json
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vector store local data (if using local Qdrant/Chroma)
+**/qdrant_storage/
+**/chroma_db/
