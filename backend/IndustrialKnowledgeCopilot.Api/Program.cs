@@ -21,6 +21,7 @@ builder.Services.AddSingleton(geminiSettings);
 
 // ---- Register our Kernel service ----
 builder.Services.AddSingleton<KernelService>();
+builder.Services.AddSingleton<EmbeddingService>();
 
 var app = builder.Build();
 
@@ -61,6 +62,19 @@ app.MapPost("/api/test-ai", async (string question, KernelService kernelService)
     return Results.Ok(new { answer = result.ToString() });
 })
 .WithName("TestAiConnection")
+.WithOpenApi();
+
+app.MapPost("/api/test-embedding", async (string text, EmbeddingService embeddingService) =>
+{
+    var embedding = await embeddingService.GetEmbeddingAsync(text);
+    return Results.Ok(new
+    {
+        textLength = text.Length,
+        embeddingDimensions = embedding.Length,
+        firstFiveValues = embedding.Take(5).ToArray()
+    });
+})
+.WithName("TestEmbedding")
 .WithOpenApi();
 
 app.Run();
