@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Component, signal, ChangeDetectorRef } from '@angular/core';
 
 interface SourceCitation {
   documentName: string;
@@ -34,7 +35,7 @@ export class App {
   isAsking = false;
   messages: ChatMessage[] = [];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -83,6 +84,7 @@ this.messages = [...this.messages, { role: 'user', text: question }];
           sources: res.sources
         }];
         this.isAsking = false;
+this.cdr.detectChanges();
         console.log('MESSAGES NOW:', this.messages);
       },
       error: (err) => {
@@ -91,6 +93,7 @@ this.messages = [...this.messages, { role: 'user', text: question }];
   text: `❌ Error: ${err.error?.error || 'Something went wrong.'}`
 }];
         this.isAsking = false;
+this.cdr.detectChanges();
       }
     });
   }
