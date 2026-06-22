@@ -1,6 +1,8 @@
 using Microsoft.SemanticKernel;
 using IndustrialKnowledgeCopilot.Api.Config;
 using IndustrialKnowledgeCopilot.Api.Services;
+using IndustrialKnowledgeCopilot.Api.Models;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,8 @@ builder.Services.AddSingleton(geminiSettings);
 // ---- Register our Kernel service ----
 builder.Services.AddSingleton<KernelService>();
 builder.Services.AddSingleton<EmbeddingService>();
+builder.Services.AddSingleton<VectorStoreService>();
+builder.Services.AddSingleton<DocumentProcessingService>();
 
 var app = builder.Build();
 
@@ -75,6 +79,55 @@ app.MapPost("/api/test-embedding", async (string text, EmbeddingService embeddin
     });
 })
 .WithName("TestEmbedding")
+.WithOpenApi();
+
+app.MapPost("/api/documents/upload", async (
+    [FromForm] IFormFile file,
+    DocumentProcessingService docService,
+    EmbeddingService embeddingService,
+    VectorStoreService vectorStore) =>
+{
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No file uploaded." });
+
+    if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Only PDF files are supported." });
+
+    using var stream = file.OpenReadStream();
+    var fullText = docService.ExtractTextFromPdf(stream);
+
+    if (string.IsNullOrWhiteSpace(fullText))
+        return Results.BadRequest(new { error = "Could not extract any text from this PDF." });
+
+    var chunks = docService.ChunkText(fullText);
+
+    int chunkIndex = 0;
+    foreach (var chunkText in chunks)
+    {
+        var embedding = await embeddingService.GetEmbeddingAsync(chunkText);
+
+        var docChunk = new DocumentChunk
+        {
+            SourceDocument = file.FileName,
+            ChunkIndex = chunkIndex,
+            Text = chunkText,
+            Embedding = embedding
+        };
+
+        vectorStore.AddChunk(docChunk);
+        chunkIndex++;
+    }
+
+    return Results.Ok(new
+    {
+        fileName = file.FileName,
+        totalChunks = chunks.Count,
+        totalCharactersExtracted = fullText.Length,
+        totalChunksInStore = vectorStore.Count
+    });
+})
+.WithName("UploadDocument")
+.DisableAntiforgery()
 .WithOpenApi();
 
 app.Run();
