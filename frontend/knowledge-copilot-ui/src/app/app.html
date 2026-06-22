@@ -1,0 +1,45 @@
+<div class="app-container">
+  <header class="app-header">
+    <h1>🏭 Industrial Knowledge Copilot</h1>
+    <p>Ask questions about your uploaded documents</p>
+  </header>
+
+  <section class="upload-section">
+    <h2>Upload Document</h2>
+    <input type="file" #fileInput accept=".pdf" (change)="onFileSelected($event)" />
+    <button (click)="uploadFile()" [disabled]="!selectedFile || isUploading">
+      {{ isUploading ? 'Uploading...' : 'Upload PDF' }}
+    </button>
+    <p *ngIf="uploadMessage" class="upload-message">{{ uploadMessage }}</p>
+  </section>
+
+  <section class="chat-section">
+    <div class="chat-messages">
+      <div *ngFor="let msg of messages" [ngClass]="msg.role">
+        <div class="message-bubble">
+          <p>{{ msg.text }}</p>
+          <div *ngIf="msg.sources && msg.sources.length > 0" class="sources">
+            <strong>Sources:</strong>
+            <ul>
+              <li *ngFor="let src of msg.sources">
+                {{ src.documentName }} (Section {{ src.chunkIndex }}) — relevance: {{ src.relevanceScore }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input
+        type="text"
+        [(ngModel)]="currentQuestion"
+        placeholder="Ask a question about your documents..."
+        (keyup.enter)="askQuestion()"
+      />
+      <button (click)="askQuestion()" [disabled]="!currentQuestion || isAsking">
+        {{ isAsking ? 'Thinking...' : 'Ask' }}
+      </button>
+    </div>
+  </section>
+</div>

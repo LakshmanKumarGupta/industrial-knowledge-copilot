@@ -21,18 +21,21 @@ public class VectorStoreService
         return _chunks.Select(c => c.SourceDocument).Distinct().ToList();
     }
 
-    public List<(DocumentChunk Chunk, double Score)> SearchSimilar(float[] queryEmbedding, int topK = 5)
-    {
-        var scored = _chunks.Select(chunk => (
-            Chunk: chunk,
-            Score: CosineSimilarity(queryEmbedding, chunk.Embedding)
-        ))
-        .OrderByDescending(x => x.Score)
-        .Take(topK)
-        .ToList();
+   public List<(DocumentChunk Chunk, double Score)> SearchSimilar(float[] queryEmbedding, int topK = 5)
+{
+    var scored = _chunks.Select(chunk => (
+        Chunk: chunk,
+        Score: CosineSimilarity(queryEmbedding, chunk.Embedding)
+    ))
+    .OrderByDescending(x => x.Score)
+    // Deduplicate by document name + text content, keeping the highest-scoring instance
+    .GroupBy(x => (x.Chunk.SourceDocument, x.Chunk.Text))
+    .Select(g => g.First())
+    .Take(topK)
+    .ToList();
 
-        return scored;
-    }
+    return scored;
+}
 
     private static double CosineSimilarity(float[] a, float[] b)
     {
@@ -49,4 +52,13 @@ public class VectorStoreService
         if (magA == 0 || magB == 0) return 0;
         return dot / (Math.Sqrt(magA) * Math.Sqrt(magB));
     }
+public bool IsDocumentAlreadyIngested(string fileName)
+{
+    return _chunks.Any(c => c.SourceDocument == fileName);
+}
+
+public void RemoveDocument(string fileName)
+{
+    _chunks.RemoveAll(c => c.SourceDocument == fileName);
+}
 }
